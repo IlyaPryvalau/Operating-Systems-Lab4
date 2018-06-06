@@ -16,6 +16,11 @@
 #define TREE_NODE_COUNT 8
 #define FILE_NAME_LEN 6
 
+
+/*
+TODO: implement the usage of async-safe functions;
+
+*/
 char *programName;
 pid_t pid, ppid;
 struct sigaction act;
@@ -24,7 +29,6 @@ int sigCountTotal = 0,
     countUsr2 = 0;
 
 int savePidToFile(char *fileName, int pid);
-int fileExists(char *filename);
 long long getTime();
 int getPidFromFile(char *fileName);
 void proc1Handler(int sig);
@@ -57,7 +61,7 @@ int main (char argc, char *argv[]) {
                 act.sa_handler = proc7Handler;
                 sigaction(SIGUSR1, &act, 0);    
                 sigaction(SIGTERM, &act, 0);
-                while(!fileExists("6.txt"));
+                while(!getPidFromFile("6.txt"));
                 setpgid(getpid(), getPidFromFile("6.txt"));
                 printf("7-й в группе с пидом %d\n",  getpgid(getpid()));
                 savePidToFile("7.txt", getpid());
@@ -94,7 +98,7 @@ int main (char argc, char *argv[]) {
             act.sa_handler = proc3Handler;
             sigaction(SIGUSR1, &act, 0);   
             sigaction(SIGTERM, &act, 0);
-            while (!fileExists("2.txt"));
+            while (!getPidFromFile("2.txt"));
             setpgid(getpid(), getPidFromFile("2.txt"));
             printf("3-й в группе с пидом %d\n", getpgid(getpid()));
             savePidToFile("3.txt", getpid());
@@ -118,7 +122,7 @@ int main (char argc, char *argv[]) {
             act.sa_handler = proc5Handler;
             sigaction(SIGUSR1, &act, 0);    
             sigaction(SIGTERM, &act, 0);
-            while (!fileExists("6.txt"));
+            while (!getPidFromFile("6.txt"));
             setpgid(getpid(), getPidFromFile("6.txt"));
             printf("5-й в группе с пидом %d\n", getpgid(getpid()));
             savePidToFile("5.txt", getpid());
@@ -134,7 +138,7 @@ int main (char argc, char *argv[]) {
             fileCount = 0;
             for (int i = 1; i <= 8; i++) {
                 sprintf(fileName, "%d.txt", i);
-                if (fileExists(fileName)) {
+                if (getPidFromFile(fileName)) {
                     fileCount++;
                 }
             }
@@ -170,20 +174,15 @@ int getPidFromFile(char *fileName) {
     FILE *file;
     int pid;
     if (!(file = fopen(fileName, "r"))){
-        fprintf(stderr, "%d %s %s\n", getpid(), programName, fileName);
-        exit(EXIT_FAILURE);
+        return 0;
     }
     fscanf(file, "%d", &pid);
+    if (pid) {
+        fclose(file);
+        return pid;
+    }
     fclose(file);
-    return pid;
-}
-
-int fileExists(char *filename) {
-    FILE *file;
-    if (!(file = fopen(filename,"r")))
-        return 0;
-    fclose(file);
-    return 1;
+    return 0;
 }
 
 long long getTime(){
