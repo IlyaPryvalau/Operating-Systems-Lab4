@@ -12,9 +12,10 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #define MAX_SIGNAL_COUNT 101
 #define TREE_NODE_COUNT 8
-#define FILE_NAME_LEN 6
+#define FILE_NAME_LEN 5
 
 
 /*
@@ -132,7 +133,7 @@ int main (char argc, char *argv[]) {
         while (1)
             pause();
     } else if (pid > 0){
-        char *fileName = (char *)malloc(sizeof(char) * FILE_NAME_LEN);
+        char fileName[10];
         int fileCount = 0;
         while (fileCount < 8) {
             fileCount = 0;
@@ -151,6 +152,14 @@ int main (char argc, char *argv[]) {
         int pid1 = getPidFromFile("1.txt"), wstat;
         kill(pid1, SIGUSR2);
         waitpid(pid1, &wstat, 0);
+        /*kill(getPidFromFile("1.txt"), SIGKILL);
+        kill(getPidFromFile("2.txt"), SIGKILL);
+        kill(getPidFromFile("3.txt"), SIGKILL);
+        kill(getPidFromFile("4.txt"), SIGKILL);
+        kill(getPidFromFile("5.txt"), SIGKILL);
+        kill(getPidFromFile("6.txt"), SIGKILL);
+        kill(getPidFromFile("7.txt"), SIGKILL);
+        kill(getPidFromFile("8.txt"), SIGKILL);*/
         /*for (int i = 1; i <= 8; i++) {
             sprintf(fileName, "%d.txt", i);
             remove(fileName);
@@ -159,29 +168,30 @@ int main (char argc, char *argv[]) {
 }
 
 int savePidToFile(char *fileName, int pid) {
-    FILE *file;
+    int file;
     printf("Файл %s создан!\n", fileName);
-    if (!(file = fopen(fileName,"w"))) {
-        fprintf(stderr, "%d %s %s\n", getpid(), programName, fileName);
+    if ((file = open(fileName, O_WRONLY | O_CREAT, S_IRWXU)) == -1) {
         exit(EXIT_FAILURE);
     }
-    fprintf(file, "%d\n", pid);
-    fclose(file);
+    int *buf = (int *)malloc(sizeof pid);
+    *buf = pid;
+    write(file, buf, sizeof pid);
+    close(file);
     return 1;
 }
 
 int getPidFromFile(char *fileName) {
-    FILE *file;
-    int pid;
-    if (!(file = fopen(fileName, "r"))){
+    int file;
+    if ((file = open(fileName, O_RDONLY)) == -1){
         return 0;
     }
-    fscanf(file, "%d", &pid);
-    if (pid) {
-        fclose(file);
-        return pid;
+    int *pid = (int *)malloc(sizeof(int));
+    read(file, pid, sizeof(int));
+    if (*pid) {
+        close(file);
+        return *pid;
     }
-    fclose(file);
+    close(file);
     return 0;
 }
 
